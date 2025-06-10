@@ -39,7 +39,9 @@ const TabLayout = () => {
             <Ionicons name="person-circle-sharp" size={24} color={color} />
         )}} />
 
-        <Tabs.Screen name='notifications' options={{title:"Notifications"}} />
+        <Tabs.Screen name='notifications' options={{title:"Notifications" , tabBarIcon: ({color}) => (
+            <Ionicons name="notifications" size={24} color={color} />
+        )}} />
 
     </Tabs>
   )
