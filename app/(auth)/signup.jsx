@@ -1,160 +1,147 @@
-import { View, Text, TextInput, TouchableOpacity, Image, Dimensions, Animated, KeyboardAvoidingView, Platform } from 'react-native'
-import React, { useRef, useEffect } from 'react'
-import { LinearGradient } from 'expo-linear-gradient'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { useRouter } from 'expo-router'
-import { Colors } from '../../assets/Colors'
-import { BlurView } from 'expo-blur'
-import * as Haptics from 'expo-haptics'
+import { app } from "../../config/firebaseConfig";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  StatusBar,
+  TextInput,
+  Alert,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
+import React from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import logo from "../../assets/images/DreamSoul.png";
+import { Formik } from "formik";
+import validationSchema from "../../utils/authSchema";
+import { doc, getFirestore, setDoc } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const { width } = Dimensions.get('window')
+const Signup = () => {
+  const router = useRouter();
+  const auth = getAuth();
+  const db = getFirestore();
 
-export default function Signup() {
-  const router = useRouter()
-  const fadeAnim = useRef(new Animated.Value(0)).current
-  const slideAnim = useRef(new Animated.Value(50)).current
+  const handleSignup = async (values) => {
+    try {
+      const userCredentials = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+      const user = userCredentials.user;
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      })
-    ]).start()
-  }, [])
+      await setDoc(doc(db, "users", user.uid), {
+        email: values.email,
+        createdAt: new Date(),
+      });
 
-  const handleSignUp = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-    // TODO: Implement sign up logic
-    router.push('/(tabs)')
-  }
+      await AsyncStorage.setItem("userEmail", values.email);
+      await AsyncStorage.setItem("isAdmin", "false");
+
+      router.push("/home");
+    } catch (error) {
+      if (error.code === "auth/email-already-in-use") {
+        Alert.alert(
+          "Signup Failed!",
+          "This email address is already in use. Please use a different email.",
+          [{ text: "OK" }]
+        );
+      } else {
+        Alert.alert(
+          "Signup Error",
+          "An unexpected error occurred. Please try again later.",
+          [{ text: "OK" }]
+        );
+      }
+    }
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <LinearGradient
-        colors={['#1a0611', '#4a0e2b', '#7d1538', '#b91c3c']}
-        style={{ flex: 1 }}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={{ flex: 1, position: 'relative' }}>
-            {/* Decorative Elements */}
-            <View style={{ position: 'absolute', top: 50, right: 20, opacity: 0.1 }}>
-              <Text style={{ fontSize: 100, color: '#fff' }}>✨</Text>
-            </View>
-            
-            <View style={{ position: 'absolute', bottom: 100, left: 30, opacity: 0.1 }}>
-              <Text style={{ fontSize: 80, color: '#fff' }}>💫</Text>
-            </View>
+    <SafeAreaView className={`bg-[#2b2b2b]`}>
+      <ScrollView contentContainerStyle={{ height: "100%" }}>
+        <View className="m-2 flex justify-center items-center">
+          <Image source={logo} style={{ width: 200, height: 100 }} />
+          <Text className="text-lg text-center text-white  font-bold mb-10">
+            Let's get you started
+          </Text>
 
-            <Animated.View 
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-                paddingHorizontal: 30
-              }}
+          <View className="w-5/6">
+            <Formik
+              initialValues={{ email: "", password: "" }}
+              validationSchema={validationSchema}
+              onSubmit={handleSignup}
             >
-              {/* Logo Section */}
-              <View style={{ alignItems: 'center', marginBottom: 40 }}>
-                <Image 
-                  source={require('../../assets/images/DreamSoul.png')} 
-                  style={{ width: 120, height: 120 }}
-                  resizeMode="contain"
-                />
-                <Text style={{
-                  fontSize: 32,
-                  fontWeight: 'bold',
-                  color: '#fff',
-                  marginTop: 10,
-                  letterSpacing: 2
-                }}>
-                  Join DreamSoul
-                </Text>
-              </View>
-
-              {/* Sign Up Form */}
-              <BlurView intensity={20} style={{
-                width: width - 60,
-                borderRadius: 20,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-                padding: 20
-              }}>
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ color: '#fff', marginBottom: 8, fontSize: 16 }}>Email</Text>
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                values,
+                errors,
+                touched,
+              }) => (
+                <View className="w-full">
+                  <Text className="text-[#f49b33] mt-4 mb-2">Email</Text>
                   <TextInput
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: 12,
-                      padding: 15,
-                      color: '#fff',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.2)'
-                    }}
-                    placeholder="Enter your email"
-                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                    className="h-10 border border-white text-white rounded px-2"
                     keyboardType="email-address"
-                    autoCapitalize="none"
+                    onChangeText={handleChange("email")}
+                    value={values.email}
+                    onBlur={handleBlur("email")}
                   />
-                </View>
 
-                <View style={{ marginBottom: 25 }}>
-                  <Text style={{ color: '#fff', marginBottom: 8, fontSize: 16 }}>Password</Text>
+                  {touched.email && errors.email && (
+                    <Text className="text-red-500 text-xs mb-2">
+                      {errors.email}
+                    </Text>
+                  )}
+                  <Text className="text-[#f49b33] mt-4 mb-2">Password</Text>
                   <TextInput
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: 12,
-                      padding: 15,
-                      color: '#fff',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.2)'
-                    }}
-                    placeholder="Create a password"
-                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                    className="h-10 border border-white text-white rounded px-2"
                     secureTextEntry
+                    onChangeText={handleChange("password")}
+                    value={values.password}
+                    onBlur={handleBlur("password")}
                   />
+
+                  {touched.password && errors.password && (
+                    <Text className="text-red-500 text-xs mb-2">
+                      {errors.password}
+                    </Text>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={handleSubmit}
+                    className="p-2 my-2 bg-[#f49b33]  text-black rounded-lg mt-10"
+                  >
+                    <Text className="text-lg font-semibold text-center">
+                      Sign Up
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-
-                <TouchableOpacity 
-                  onPress={handleSignUp}
-                  style={{
-                    backgroundColor: Colors.PRIMARY,
-                    paddingVertical: 15,
-                    borderRadius: 12,
-                    alignItems: 'center',
-                    marginBottom: 20
-                  }}
-                >
-                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                    Create Account
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  onPress={() => router.push('/signin')}
-                  style={{ alignItems: 'center' }}
-                >
-                  <Text style={{ color: '#fff', fontSize: 14 }}>
-                    Already have an account? <Text style={{ color: Colors.PRIMARY, fontWeight: 'bold' }}>Sign In</Text>
-                  </Text>
-                </TouchableOpacity>
-              </BlurView>
-            </Animated.View>
+              )}
+            </Formik>
+            <View className="flex justify-center items-center">
+              <TouchableOpacity
+                className="flex flex-row justify-center mt-5 p-2 items-center"
+                onPress={() => router.push("/signin")}
+              >
+                <Text className="text-white font-semibold">
+                  Already a User?{" "}
+                </Text>
+                <Text className="text-base font-semibold underline text-[#f49b33]">
+                  Sign in
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </KeyboardAvoidingView>
-      </LinearGradient>
+        </View>
+        <StatusBar barStyle={"light-content"} backgroundColor={"#2b2b2b"} />
+      </ScrollView>
     </SafeAreaView>
-  )
-}
+  );
+};
+
+export default Signup;
