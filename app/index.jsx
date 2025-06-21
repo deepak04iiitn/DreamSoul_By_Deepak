@@ -274,7 +274,8 @@ export default function Index() {
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
-                elevation: 8
+                elevation: 8,
+                boxShadow: '0px 4px 16px rgba(0,0,0,0.15)'
               }}
             >
               <Text style={{
